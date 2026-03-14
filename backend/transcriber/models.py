@@ -14,3 +14,6 @@ class Transcription(models.Model):
     status        = models.CharField(max_length=20, choices=STATUS,
                                      default='pending')
     created_at    = models.DateTimeField(auto_now_add=True)
+
+    time_signature = models.CharField(max_length=10, default='4/4')
+

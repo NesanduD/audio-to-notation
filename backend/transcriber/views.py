@@ -7,21 +7,23 @@ from .tasks import process_audio
 
 class UploadAudioView(APIView):
     def post(self, request, *args, **kwargs):
-        # We manually check if 'audio' is in the request
         file_obj = request.FILES.get('audio')
-        if not file_obj:
-            return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        time_sig = request.data.get('time_signature', '4/4')
+        bpm = request.data.get('bpm', 120) # Catch the BPM from React
 
-        # Create the object
-        transcription = Transcription.objects.create(audio_file=file_obj)
+        if not file_obj:
+            return Response({"error": "No file"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Save model with time signature
+        transcription = Transcription.objects.create(
+            audio_file=file_obj,
+            time_signature=time_sig
+        )
         
-        # Trigger the task only AFTER we are sure the object is saved
-        process_audio.delay(transcription.id)
+        # Pass the dynamic BPM to the AI task
+        process_audio.delay(transcription.id, bpm)
         
-        return Response({
-            "id": transcription.id,
-            "status": transcription.status
-        }, status=status.HTTP_201_CREATED)
+        return Response({"id": transcription.id}, status=status.HTTP_201_CREATED)
 
 class TranscriptionDetailView(generics.RetrieveAPIView):
     queryset = Transcription.objects.all()
