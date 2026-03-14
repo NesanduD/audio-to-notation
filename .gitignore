@@ -1,0 +1,11 @@
+# Environments and dependencies
+venv/
+node_modules/
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+
+# Media uploads
+backend/media/
