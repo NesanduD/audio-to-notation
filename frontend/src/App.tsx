@@ -17,24 +17,36 @@ export default function App() {
 
   return (
     <div className='min-h-screen bg-gray-100 p-8'>
-      <h1>Audio to Sheet Music</h1>
+      <h1 className="text-2xl font-bold mb-6">Audio to Sheet Music</h1>
 
       {/* Record Controls */}
-      <div>
+      <div className="flex gap-4 mb-8">
         {!recording
-          ? <button onClick={start}>Start Recording</button>
-          : <button onClick={stop}>Stop Recording</button>}
-        {audioBlob && <button onClick={handleUpload}>Convert to Notation</button>}
+          ? <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={start}>Start Recording</button>
+          : <button className="bg-red-500 text-white px-4 py-2 rounded" onClick={stop}>Stop Recording</button>}
+        
+        {audioBlob && !recording && (
+          <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={handleUpload}>
+            Convert to Notation
+          </button>
+        )}
       </div>
 
-      {/* Status */}
-      {data && <p>Status: {data.status}</p>}
+      {/* Status Indicators */}
+      {data && (
+        <div className="mb-4 italic text-gray-700">
+          Status: <span className="capitalize font-semibold">{data.status}</span>
+        </div>
+      )}
 
-      {/* Sheet Music */}
+      {/* Sheet Music Rendering */}
       {data?.status === 'done' && (
-        <SheetMusicDisplay
-          musicXmlUrl={`http://localhost:8000/media/${data.musicxml_file}`}
-        />
+        <div className="border-t pt-6">
+          <SheetMusicDisplay
+            /* We only prepend the server address, NOT the /media/ folder */
+            musicXmlUrl={`http://localhost:8000${data.musicxml_file}`}
+          />
+        </div>
       )}
     </div>
   );
