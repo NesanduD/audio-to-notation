@@ -1,23 +1,28 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import generics, status
 from .models import Transcription
 from .serializers import TranscriptionSerializer
 from .tasks import process_audio
 
 class UploadAudioView(APIView):
-    def post(self, request):
-        file = request.FILES.get('audio')
-        if not file:
-            return Response({'error': 'No file'}, status=400)
-        t = Transcription.objects.create(audio_file=file)
-        process_audio.delay(t.id)   # async Celery task
-        return Response({'id': t.id, 'status': 'processing'})
+    def post(self, request, *args, **kwargs):
+        # We manually check if 'audio' is in the request
+        file_obj = request.FILES.get('audio')
+        if not file_obj:
+            return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-class TranscriptionDetailView(APIView):
-    def get(self, request, pk):
-        try:
-            t = Transcription.objects.get(pk=pk)
-            return Response(TranscriptionSerializer(t).data)
-        except Transcription.DoesNotExist:
-            return Response({'error': 'Not found'}, status=404)
+        # Create the object
+        transcription = Transcription.objects.create(audio_file=file_obj)
+        
+        # Trigger the task only AFTER we are sure the object is saved
+        process_audio.delay(transcription.id)
+        
+        return Response({
+            "id": transcription.id,
+            "status": transcription.status
+        }, status=status.HTTP_201_CREATED)
+
+class TranscriptionDetailView(generics.RetrieveAPIView):
+    queryset = Transcription.objects.all()
+    serializer_class = TranscriptionSerializer

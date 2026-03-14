@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useRecorder } from './hooks/useRecorder';
 import { usePolling } from './hooks/usePolling';
 import { uploadAudio } from './services/api';
-import SheetMusicDisplay from './components/SheetMusicDisplay';
 
 export default function App() {
   const { recording, audioBlob, start, stop } = useRecorder();
@@ -16,38 +15,57 @@ export default function App() {
   };
 
   return (
-    <div className='min-h-screen bg-gray-100 p-8'>
-      <h1 className="text-2xl font-bold mb-6">Audio to Sheet Music</h1>
+    <div className='min-h-screen bg-slate-50 p-8 flex flex-col items-center'>
+      <div className='max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8'>
+        <h1 className="text-3xl font-black text-slate-800 mb-2">Note Finder</h1>
+        <p className="text-slate-500 mb-8">Record audio to see the English musical notation.</p>
 
-      {/* Record Controls */}
-      <div className="flex gap-4 mb-8">
-        {!recording
-          ? <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={start}>Start Recording</button>
-          : <button className="bg-red-500 text-white px-4 py-2 rounded" onClick={stop}>Stop Recording</button>}
-        
-        {audioBlob && !recording && (
-          <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={handleUpload}>
-            Convert to Notation
-          </button>
+        {/* Controls */}
+        <div className="flex items-center justify-center gap-4 mb-10">
+          {!recording ? (
+            <button 
+              onClick={start} 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition-all"
+            >
+              Start Recording
+            </button>
+          ) : (
+            <button 
+              onClick={stop} 
+              className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-full animate-pulse"
+            >
+              Stop & Finish
+            </button>
+          )}
+          
+          {audioBlob && !recording && (
+            <button 
+              onClick={handleUpload} 
+              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-full shadow-lg"
+            >
+              Convert to Notes
+            </button>
+          )}
+        </div>
+
+        {/* Results Area */}
+        {data && (
+          <div className="border-t border-slate-100 pt-8 text-center">
+            <div className={`text-sm font-bold uppercase tracking-widest mb-4 ${data.status === 'done' ? 'text-emerald-500' : 'text-amber-500'}`}>
+              {data.status === 'processing' ? 'AI is listening...' : `Status: ${data.status}`}
+            </div>
+            
+            {data.status === 'done' && (
+              <div className="space-y-4">
+                <h2 className="text-slate-400 text-xs font-bold uppercase tracking-tighter">Your Notes</h2>
+                <div className="text-5xl font-mono font-black text-slate-900 break-words tracking-widest bg-slate-50 p-6 rounded-xl border-2 border-dashed border-slate-200">
+                  {data.note_names || "???"}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
-
-      {/* Status Indicators */}
-      {data && (
-        <div className="mb-4 italic text-gray-700">
-          Status: <span className="capitalize font-semibold">{data.status}</span>
-        </div>
-      )}
-
-      {/* Sheet Music Rendering */}
-      {data?.status === 'done' && (
-        <div className="border-t pt-6">
-          <SheetMusicDisplay
-            /* We only prepend the server address, NOT the /media/ folder */
-            musicXmlUrl={`http://localhost:8000${data.musicxml_file}`}
-          />
-        </div>
-      )}
     </div>
   );
 }
