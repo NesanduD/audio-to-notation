@@ -1,0 +1,20 @@
+import { useState, useEffect } from 'react'; [cite: 75]
+import { getTranscription } from '../services/api'; [cite: 75]
+
+export function usePolling(id: number | null) { [cite: 75]
+  const [data, setData] = useState<any>(null); [cite: 75]
+
+  useEffect(() => { [cite: 75]
+    if (!id) return; [cite: 75]
+    const interval = setInterval(async () => { [cite: 75]
+      const result = await getTranscription(id); [cite: 75]
+      setData(result); [cite: 75]
+      if (result.status === 'done' || result.status === 'failed') { [cite: 75]
+        clearInterval(interval); [cite: 75]
+      } [cite: 75]
+    }, 2000);   // poll every 2 seconds [cite: 75]
+    return () => clearInterval(interval); [cite: 75]
+  }, [id]); [cite: 75]
+
+  return data; [cite: 75]
+} [cite: 75]
