@@ -6,7 +6,7 @@ import { uploadAudio } from './services/api';
 export default function App() {
   const { recording, audioBlob, start, stop } = useRecorder();
   const [transcriptionId, setTranscriptionId] = useState<number | null>(null);
-  const data = usePolling(transcriptionId);
+  const { data, error: pollingError } = usePolling(transcriptionId);
 
   // Settings
   const [bpm, setBpm] = useState(120);
@@ -14,6 +14,7 @@ export default function App() {
   const [isMetroEnabled, setIsMetroEnabled] = useState(true); // THE TOGGLE
   const [isMetronomePlaying, setIsMetronomePlaying] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const metronomeInterval = useRef<NodeJS.Timeout | null>(null);
   const currentBeat = useRef(0);
@@ -50,8 +51,12 @@ export default function App() {
 
   // Main Recording Entry Point
   const handleRecordButton = () => {
+    if (recording || countdown !== null) return;
+
     if (!isMetroEnabled) {
-      start(); // No metro, start now
+      start().catch((recordingError) => {
+        setError(recordingError instanceof Error ? recordingError.message : 'Unable to access the microphone.');
+      });
       return;
     }
 
@@ -70,7 +75,9 @@ export default function App() {
       } else {
         clearInterval(interval);
         setCountdown(null);
-        start(); // Start recording exactly on the downbeat
+        start().catch((recordingError) => {
+          setError(recordingError instanceof Error ? recordingError.message : 'Unable to access the microphone.');
+        });
       }
     }, msPerBeat);
   };
@@ -82,8 +89,13 @@ export default function App() {
 
   const handleUpload = async () => {
     if (!audioBlob) return;
-    const result = await uploadAudio(audioBlob, timeSignature, bpm);
-    setTranscriptionId(result.id);
+    setError(null);
+    try {
+      const result = await uploadAudio(audioBlob, timeSignature, bpm);
+      setTranscriptionId(result.id);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Unable to upload recording.');
+    }
   };
 
   const isProcessing = data?.status === 'processing' || data?.status === 'pending';
@@ -138,7 +150,7 @@ export default function App() {
 
             <div className="flex gap-6 w-full max-w-sm">
               {!recording ? (
-                <button onClick={handleRecordButton} className="flex-1 py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-3xl transition-all shadow-xl shadow-indigo-500/20 active:scale-95 uppercase tracking-widest text-xs">
+                <button onClick={handleRecordButton} disabled={countdown !== null} className="flex-1 py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-3xl transition-all shadow-xl shadow-indigo-500/20 active:scale-95 uppercase tracking-widest text-xs disabled:opacity-50">
                   Start Session
                 </button>
               ) : (
@@ -153,6 +165,7 @@ export default function App() {
                 </button>
               )}
             </div>
+            {(error || pollingError) && <p role="alert" className="mt-6 text-sm text-red-400">{error || pollingError}</p>}
           </div>
 
           {/* TABLE */}

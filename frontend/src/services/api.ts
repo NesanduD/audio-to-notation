@@ -1,6 +1,13 @@
-import axios from 'axios';
+const API_BASE_URL = 'http://localhost:8000/api';
 
-const API = axios.create({ baseURL: 'http://localhost:8000/api' });
+const getErrorMessage = async (response: Response) => {
+    try {
+        const body = await response.json();
+        return body.error || `Request failed with status ${response.status}`;
+    } catch {
+        return `Request failed with status ${response.status}`;
+    }
+};
 
 export const uploadAudio = async (blob: Blob, timeSignature: string, bpm: number) => {
     const formData = new FormData();
@@ -8,13 +15,18 @@ export const uploadAudio = async (blob: Blob, timeSignature: string, bpm: number
     formData.append('time_signature', timeSignature);
     formData.append('bpm', bpm.toString()); // Send the BPM for bar math
 
-    const res = await API.post('/upload/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+    const extension = blob.type.includes('ogg') ? 'ogg' : 'webm';
+    formData.set('audio', blob, `recording.${extension}`);
+    const response = await fetch(`${API_BASE_URL}/upload/`, {
+        method: 'POST',
+        body: formData,
     });
-    return res.data;
+    if (!response.ok) throw new Error(await getErrorMessage(response));
+    return response.json();
 };
 
 export const getTranscription = async (id: number) => {
-    const res = await API.get(`/transcription/${id}/`);
-    return res.data;
+    const response = await fetch(`${API_BASE_URL}/transcription/${id}/`);
+    if (!response.ok) throw new Error(await getErrorMessage(response));
+    return response.json();
 };
